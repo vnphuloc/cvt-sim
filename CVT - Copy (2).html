@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bộ Giả Lập CVT Cao Cấp - SH160 Stage 1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        input[type="range"] {
+            accent-color: #f43f5e;
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen p-4 md:p-8 flex flex-col items-center">
+
+    <div class="max-w-6xl w-full bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 md:p-8 space-y-6">
+        
+        <!-- Header & Status Area -->
+        <div class="flex flex-col md:flex-row justify-between items-center border-b border-slate-800 pb-6 gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-amber-500">
+                    GIẢ LẬP ĐỘNG LỰC HỌC CVT
+                </h1>
+                <p class="text-slate-400 text-sm mt-1">Phân tích lực kẹp cơ học, tỉ số truyền và hiệu suất hao hụt công suất thời gian thực</p>
+            </div>
+            <div id="statusBanner" class="px-4 py-2 rounded-lg font-bold text-center text-sm shadow-md transition-all duration-300 w-full md:w-auto">
+                Đang tính toán cân bằng lực...
+            </div>
+        </div>
+
+        <!-- DUAL SEPARATE CHARTS SIDE-BY-SIDE ON THE SAME ROW -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+            
+            <!-- CHART 1: POTENTIAL LINE DYNAMIC TO SELECTED RPM & ALL PARAMETERS -->
+            <div class="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden">
+                <div class="w-full flex justify-between items-center mb-2 px-1">
+                    <span class="text-xs font-bold text-rose-500 tracking-wider uppercase">1. ĐỒ THỊ CÔNG SUẤT TIỀM NĂNG THEO TUA MÁY</span>
+                    <span class="text-[10px] code-font text-rose-400 font-bold" id="hpPotentialLive">Tiềm năng: 0% HP @ 0% Tua</span>
+                </div>
+                <canvas id="hpPotentialCanvas" width="450" height="200" class="w-full h-auto bg-slate-950"></canvas>
+                <div class="absolute bottom-2 left-2 text-[9px] text-slate-500 font-medium select-none">
+                    *Phụ thuộc toàn bộ cấu hình puly, bi, lò xo & vòng tua chọn
+                </div>
+            </div>
+
+            <!-- CHART 2: ACTUAL TRAJECTORY LINE -->
+            <div class="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden">
+                <div class="w-full flex justify-between items-center mb-2 px-1">
+                    <span class="text-xs font-bold text-amber-500 tracking-wider uppercase">2. LỘ TRÌNH QUÉT THỰC TẾ (TRAJECTORY)</span>
+                    <span class="text-[10px] code-font text-amber-400 font-bold" id="hpLivePoint">Thực tế: 0% @ 0% Tốc độ</span>
+                </div>
+                <canvas id="hpTrajectoryCanvas" width="450" height="200" class="w-full h-auto bg-slate-950"></canvas>
+                <div class="absolute bottom-2 left-2 text-[9px] text-slate-500 font-medium select-none">
+                    *Tốc độ và công suất thực tế khi vặn ga tăng dần tua máy
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Main Workspace -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- LEFT COLUMN: CONTROLS & PULLEY GEOMETRY -->
+            <div class="lg:col-span-5 space-y-6">
+                
+                <!-- Section 1: Pulley Geometry Configurations -->
+                <div class="bg-slate-950/60 p-5 rounded-xl border border-slate-800/80 space-y-4">
+                    <h3 class="text-rose-500 font-bold text-sm tracking-wider uppercase border-b border-slate-800 pb-2">
+                        1. Cấu Hình Đường Kính Puly (Hình Học)
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-slate-400 font-semibold mb-1">Max Puly Trước (mm)</label>
+                            <input type="number" id="frontMaxDInput" value="130" min="100" max="250" 
+                                   class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500 font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 font-semibold mb-1">Max Puly Sau (mm)</label>
+                            <input type="number" id="rearMaxDInput" value="162" min="100" max="250" 
+                                   class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500 font-medium">
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="applyPulleySizes()" 
+                                class="w-full bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white font-bold py-2 px-4 rounded-lg text-xs transition duration-200 shadow-md">
+                            ÁP DỤNG HÌNH HỌC MỚI
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Section 2: Interactive Tuning Sliders -->
+                <div class="bg-slate-950/60 p-5 rounded-xl border border-slate-800/80 space-y-5">
+                    <h3 class="text-rose-500 font-bold text-sm tracking-wider uppercase border-b border-slate-800 pb-2">
+                        2. Thông Số Vận Hành & Khối Lượng
+                    </h3>
+                    
+                    <!-- RPM Slider -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-slate-300 font-medium">Vòng Tua Máy Hiện Tại (Engine RPM)</span>
+                            <span class="text-rose-400 font-bold" id="rpmVal">5000 RPM</span>
+                        </div>
+                        <input type="range" id="rpmSlider" min="1500" max="10000" step="100" value="5000" class="w-full">
+                    </div>
+
+                    <!-- Roller Weight Slider (0g to 20g) -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-slate-300 font-medium">Khối Lượng Bi Nồi (Roller Weight)</span>
+                            <span class="text-rose-400 font-bold" id="weightVal">14.0 g</span>
+                        </div>
+                        <input type="range" id="weightSlider" min="0" max="20" step="0.5" value="14" class="w-full">
+                    </div>
+
+                    <!-- Spring Force Slider -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-slate-300 font-medium">Lực Lò Xo Trụ Sau (Spring Force)</span>
+                            <span class="text-rose-400 font-bold" id="springVal">44 kg</span>
+                        </div>
+                        <input type="range" id="springSlider" min="30" max="60" step="1" value="44" class="w-full">
+                    </div>
+
+                    <!-- Front Pulley Angle Slider (Step 0.5) -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-slate-300 font-medium">Góc Nghiêng Puly Trước (&theta;₁ - Front)</span>
+                            <span class="text-rose-400 font-bold" id="frontAngleVal">14.0°</span>
+                        </div>
+                        <input type="range" id="frontAngleSlider" min="10" max="20" step="0.5" value="14" class="w-full">
+                    </div>
+
+                    <!-- Rear Pulley Angle Slider (Step 0.5) -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-slate-300 font-medium">Góc Nghiêng Puly Sau (&theta;₂ - Rear)</span>
+                            <span class="text-rose-400 font-bold" id="rearAngleVal">16.0°</span>
+                        </div>
+                        <input type="range" id="rearAngleSlider" min="10" max="20" step="0.5" value="16" class="w-full">
+                    </div>
+
+                    <!-- Peak RPM Slider -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-slate-300 font-medium">Vòng Tua Đạt Đỉnh Máy (Peak RPM)</span>
+                            <span class="text-rose-400 font-bold" id="peakRpmVal">8000 RPM</span>
+                        </div>
+                        <input type="range" id="peakRpmSlider" min="5000" max="10000" step="100" value="8000" class="w-full">
+                    </div>
+                </div>
+
+                <!-- Real-time Quick Stats Grid -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center">
+                        <span class="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tỷ Số Truyền Thực Tế (CVT)</span>
+                        <span id="ratioDisplay" class="text-lg font-black text-emerald-400 mt-1 block">1.00</span>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center">
+                        <span class="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Trạng thái ép đai</span>
+                        <span id="shiftDisplay" class="text-lg font-black text-rose-400 mt-1 block">50.0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: VISUALIZER & DEBUG CONSOLE -->
+            <div class="lg:col-span-7 space-y-6 flex flex-col">
+                
+                <!-- Dynamic 2D CVT Animation Canvas -->
+                <div class="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden">
+                    <canvas id="cvtCanvas" width="500" height="200" class="w-full max-w-full h-auto bg-slate-950"></canvas>
+                    <div class="absolute bottom-2 left-2 text-[10px] text-slate-500 font-medium select-none">
+                        *Sợi đai dịch chuyển mượt mà bám sát theo điểm cân bằng lực cơ học thực tế
+                    </div>
+                </div>
+
+                <!-- Debug Inspector (Console) Panel -->
+                <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 flex-1 flex flex-col min-h-[320px]">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <h3 class="font-bold text-sm tracking-wider uppercase text-emerald-400">
+                                DEBUG MATHEMATICAL INSPECTOR
+                            </h3>
+                        </div>
+                        <span class="text-[10px] code-font text-slate-500">real-time compilation</span>
+                    </div>
+                    
+                    <!-- Equations and Math Output -->
+                    <div id="debugConsole" class="code-font text-xs text-emerald-300/90 space-y-2 overflow-y-auto max-h-[360px] leading-relaxed pr-2">
+                        <!-- Mathematical updates injected here by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const rpmSlider = document.getElementById('rpmSlider');
+        const weightSlider = document.getElementById('weightSlider');
+        const springSlider = document.getElementById('springSlider');
+        const frontAngleSlider = document.getElementById('frontAngleSlider');
+        const rearAngleSlider = document.getElementById('rearAngleSlider');
+        const peakRpmSlider = document.getElementById('peakRpmSlider');
+
+        const rpmVal = document.getElementById('rpmVal');
+        const weightVal = document.getElementById('weightVal');
+        const springVal = document.getElementById('springVal');
+        const frontAngleVal = document.getElementById('frontAngleVal');
+        const rearAngleVal = document.getElementById('rearAngleVal');
+        const peakRpmVal = document.getElementById('peakRpmVal');
+
+        const frontMaxDInput = document.getElementById('frontMaxDInput');
+        const rearMaxDInput = document.getElementById('rearMaxDInput');
+
+        const statusBanner = document.getElementById('statusBanner');
+        const debugConsole = document.getElementById('debugConsole');
+
+        const ratioDisplay = document.getElementById('ratioDisplay');
+        const shiftDisplay = document.getElementById('shiftDisplay');
+        const hpLivePoint = document.getElementById('hpLivePoint');
+        const hpPotentialLive = document.getElementById('hpPotentialLive');
+
+        const canvas = document.getElementById('cvtCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const hpPotentialCanvas = document.getElementById('hpPotentialCanvas');
+        const hpPotentialCtx = hpPotentialCanvas.getContext('2d');
+
+        const hpTrajectoryCanvas = document.getElementById('hpTrajectoryCanvas');
+        const hpTrajectoryCtx = hpTrajectoryCanvas.getContext('2d');
+
+        // Dynamic State Variables
+        let frontMaxD = 130; // mm
+        let rearMaxD = 162;  // mm
+        let animationFrameId;
+        let beltOffset = 0;
+        
+        // Easing interpolation values for physical realism
+        let shiftFactor = 0.0;       // Current animated shift state (0.0 to 1.0)
+        let targetShiftFactor = 0.0; // Target equilibrium shift state based on physics calculations
+
+        // Backward-compatible rounded rectangle drawer to prevent Webview/older browser canvas crashes
+        function drawRoundRect(cContext, x, y, width, height, radius) {
+            cContext.beginPath();
+            cContext.moveTo(x + radius, y);
+            cContext.lineTo(x + width - radius, y);
+            cContext.quadraticCurveTo(x + width, y, x + width, y + radius);
+            cContext.lineTo(x + width, y + height - radius);
+            cContext.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            cContext.lineTo(x + radius, y + height);
+            cContext.quadraticCurveTo(x, y + height, x, y + height - radius);
+            cContext.lineTo(x, y + radius);
+            cContext.quadraticCurveTo(x, y, x + radius, y);
+            cContext.closePath();
+        }
+
+        // Apply new custom pulley sizes
+        function applyPulleySizes() {
+            const fIn = parseFloat(frontMaxDInput.value);
+            const rIn = parseFloat(rearMaxDInput.value);
+
+            if (isNaN(fIn) || fIn < 100 || fIn > 250 || isNaN(rIn) || rIn < 100 || rIn > 250) {
+                alert("⚠️ Lỗi: Kích thước puly nằm trong khoảng an toàn (100mm - 250mm).");
+                return;
+            }
+
+            frontMaxD = fIn;
+            rearMaxD = rIn;
+            updatePhysicsAndVisuals();
+        }
+
+        function calculateOptimalTuning(peakRpm, weight, springKg, frontAngleDeg, rearAngleDeg) {
+            const omega_peak = (peakRpm * 2 * Math.PI) / 60;
+            const theta_ramp_rad = (20 * Math.PI) / 180;
+            const rearAngleRad = (rearAngleDeg * Math.PI) / 180;
+            const frontAngleRad = (frontAngleDeg * Math.PI) / 180;
+            
+            // Mid-shift (sf = 0.5) baseline equilibrium target
+            const activeSpring_mid = springKg * (0.8 + 0.4 * 0.5); // 1.0 * springKg
+            const F_rear_axial_spring = activeSpring_mid * 9.81;
+            const F_rear_belt_tension = F_rear_axial_spring / Math.tan(rearAngleRad);
+            
+            // Target forceRatio for sf = 0.5 is 1.25 (since targetSF = (Ratio - 0.5)/1.5 => 0.5 = (Ratio - 0.5)/1.5 => Ratio = 1.25)
+            const targetForceRatio = 1.25;
+            const F_front_axial_target = targetForceRatio * F_rear_belt_tension;
+            const F_c_to_axial_target = F_front_axial_target * Math.tan(frontAngleRad);
+            const Fc_target = F_c_to_axial_target / Math.tan(theta_ramp_rad);
+            
+            // 1. OPTIMAL ROLLER WEIGHT (given current spring Force and front angle)
+            const r_bi_mid = 0.045; // meters at sf = 0.5
+            const M_tot_opt = Fc_target / (Math.pow(omega_peak, 2) * r_bi_mid);
+            const optWeight_g = Math.min(Math.max((M_tot_opt / 6) * 1000, 3.0), 25.0);
+
+            // 2. OPTIMAL SPRING FORCE (given current roller weight and front angle)
+            const m_curr = weight / 1000;
+            const M_tot_curr = 6 * m_curr;
+            const Fc_curr_at_peak = M_tot_curr * Math.pow(omega_peak, 2) * r_bi_mid;
+            const F_front_axial_curr_at_peak = (Fc_curr_at_peak * Math.tan(theta_ramp_rad)) / Math.tan(frontAngleRad);
+            const F_rear_belt_tension_opt = F_front_axial_curr_at_peak / targetForceRatio;
+            const F_rear_axial_spring_opt = F_rear_belt_tension_opt * Math.tan(rearAngleRad);
+            const optSpring_kg = Math.min(Math.max(F_rear_axial_spring_opt / 9.81, 15.0), 65.0);
+
+            // 3. OPTIMAL FRONT PULLEY ANGLE (given current roller weight and spring force)
+            // F_front_axial = Fc * tan(20°) / tan(theta1) = 1.25 * F_rear_belt
+            const tan_theta1_opt = (Fc_curr_at_peak * Math.tan(theta_ramp_rad)) / (targetForceRatio * F_rear_belt_tension);
+            const theta1_opt_deg = Math.min(Math.max(Math.atan(tan_theta1_opt) * (180 / Math.PI), 10.0), 20.0);
+
+            return {
+                optWeight: optWeight_g,
+                optSpring: optSpring_kg,
+                optFrontAngle: theta1_opt_deg
+            };
+        }
+
+        function updatePhysicsAndVisuals() {
+            const rpm = parseFloat(rpmSlider.value);
+            const weight = parseFloat(weightSlider.value);
+            const springKg = parseFloat(springSlider.value);
+            const frontAngleDeg = parseFloat(frontAngleSlider.value);
+            const rearAngleDeg = parseFloat(rearAngleSlider.value);
+            const peakRpm = parseFloat(peakRpmSlider.value);
+
+            // Update sliders text
+            rpmVal.innerText = `${rpm} RPM`;
+            weightVal.innerText = `${weight.toFixed(1)} g`;
+            springVal.innerText = `${springKg} kg`;
+            frontAngleVal.innerText = `${frontAngleDeg.toFixed(1)}°`;
+            rearAngleVal.innerText = `${rearAngleDeg.toFixed(1)}°`;
+            peakRpmVal.innerText = `${peakRpm} RPM`;
+
+            // 1. Convert to Base Physics Units
+            const m = weight / 1000; // mass per roller (kg)
+            const M_total = 6 * m;   // Total 6 rollers (kg)
+            const omega = (rpm * 2 * Math.PI) / 60; // angular velocity (rad/s)
+            
+            // DYNAMIC ROLLER RADIUS FEEDBACK LOOP
+            const r_bi = 0.030 + (0.030 * shiftFactor); // m
+            
+            // Protected against division by zero if weight is 0g
+            const F_c = M_total > 0 ? M_total * Math.pow(omega, 2) * r_bi : 0; // Newtons
+            
+            // Wedge mechanism on Front Pulley (approx 20 deg ramp angle)
+            const theta_ramp_rad = (20 * Math.PI) / 180;
+            const F_centrifugalForceToAxial = F_c * Math.tan(theta_ramp_rad); // N
+            
+            // Front pulley sliding mechanical advantage
+            const frontAngleRad = (frontAngleDeg * Math.PI) / 180;
+            const F_front_axial = F_centrifugalForceToAxial / Math.tan(frontAngleRad); // N
+
+            // DYNAMIC REAR SPRING COMPRESSION FEEDBACK LOOP
+            const activeSpringKg = springKg * (0.8 + 0.4 * shiftFactor);
+            const F_rear_axial_spring = activeSpringKg * 9.81; // N
+            const rearAngleRad = (rearAngleDeg * Math.PI) / 180;
+            
+            // Radial belt tension wedge component
+            const F_rear_belt_tension = F_rear_axial_spring / Math.tan(rearAngleRad); // N
+
+            // 2. Compute Equilibrium and Belt Shift Factor
+            const forceRatio = F_front_axial / (F_rear_belt_tension || 1);
+            
+            // Dynamic non-linear mapped shift factor
+            targetShiftFactor = (forceRatio - 0.5) / 1.5;
+            targetShiftFactor = Math.min(Math.max(targetShiftFactor, 0), 1);
+
+            // 3. Map Belt Positions
+            const R_front_min = 25; // fixed boss radius in mm
+            const R_front_max = frontMaxD / 2;
+            const R_rear_min = 35;  // fixed minimum radius for real belt clearance
+            const R_rear_max = rearMaxD / 2;
+
+            // Interpolate active radii based on current animated shiftFactor
+            const R_front_active = R_front_min + (R_front_max - R_front_min) * shiftFactor;
+            const R_rear_active = R_rear_max - (R_rear_max - R_rear_min) * shiftFactor;
+
+            // REAL-WORLD PHYSICAL SPECIFICATIONS (HONDA SH160 TRUYỀN ĐỘNG)
+            const cvtTransmissionRatio = 2.64 - (2.64 - 0.82) * shiftFactor;
+            const finalReduction = 10.5; // Tỷ số truyền nhông láp sau chuẩn SH160
+            const wheelDiameterM = 0.58; // Đường kính bánh sau
+
+            const wheelRPM = rpm / (cvtTransmissionRatio * finalReduction);
+            const vehicleSpeedKmh = wheelRPM * wheelDiameterM * Math.PI * 60 / 1000;
+
+            // Calculate Max Theoretical Speed at 10k RPM, kịch số overdrive 0.82
+            const maxSpeedKmh = (10000 / (0.82 * finalReduction)) * wheelDiameterM * Math.PI * 60 / 1000; // ~ 127.15 km/h
+            const speedPercent = (vehicleSpeedKmh / maxSpeedKmh) * 100;
+
+            // Update UI indicators
+            ratioDisplay.innerText = `${cvtTransmissionRatio.toFixed(2)}`;
+            shiftDisplay.innerText = `${(shiftFactor * 100).toFixed(1)}%`;
+
+            // Update status banner
+            updateStatusText(rpm, shiftFactor, peakRpm);
+
+            // HP Curve is modeled as a realistic Stage 1 curve
+            const calculateHPAtRPM = (targetRpm) => {
+                let hp = 100 * Math.exp(-0.5 * Math.pow((targetRpm - peakRpm) / 2200, 2));
+                return hp;
+            };
+
+            // DYNAMIC TRANSMISSION EFFICIENCY CALCULATION
+            const liveEngineHP = calculateHPAtRPM(rpm);
+            let efficiency = 0.82; // Base CVT Efficiency ~82%
+            
+            // 1. Clutch slip below 12% speed
+            if (speedPercent < 12) {
+                efficiency *= (speedPercent / 12);
+            }
+            // 2. High RPM belt slip and thermal loss
+            if (rpm > 8500) {
+                const excessRpm = rpm - 8500;
+                efficiency -= (excessRpm / 1500) * 0.10;
+            }
+            efficiency = Math.max(0, Math.min(efficiency, 0.85));
+            const liveWheelHP = liveEngineHP * efficiency;
+
+            hpLivePoint.innerText = `${liveWheelHP.toFixed(1)}% | ${speedPercent.toFixed(1)}% Speed (${vehicleSpeedKmh.toFixed(1)} km/h)`;
+
+            // Compute Optimal Setup Recommendation
+            const optTuning = calculateOptimalTuning(peakRpm, weight, springKg, frontAngleDeg, rearAngleDeg);
+
+            // Render visuals
+            drawCVT(R_front_active, R_rear_active, R_front_max, R_rear_max, rpm);
+            
+            // Render Split Side-by-Side Charts
+            drawHPCharts(speedPercent, liveWheelHP, rpm, weight, springKg, frontAngleDeg, rearAngleDeg, maxSpeedKmh, peakRpm);
+
+            // Update Mathematical Debug Console
+            updateDebugLog({
+                rpm, weight, springKg, activeSpringKg, frontAngleDeg, rearAngleDeg,
+                totalMass: M_total, omega, r_bi, F_c, F_centrifugalForceToAxial, F_front_axial,
+                F_rear_axial_spring, F_rear_belt_tension, forceRatio, shiftFactor, targetShiftFactor,
+                R_front_active, R_rear_active, cvtTransmissionRatio, finalReduction, speedPercent,
+                vehicleSpeedKmh, maxSpeedKmh, liveEngineHP, efficiency, liveWheelHP, peakRpm,
+                optTuning
+            });
+        }
+
+        function updateStatusText(rpm, shiftFactor, peakRpm) {
+            if (rpm <= 1800) {
+                statusBanner.innerText = "Trạng thái: Garanti";
+                statusBanner.className = "px-4 py-2 rounded-lg font-bold text-center text-sm shadow-md bg-slate-800 text-slate-300 w-full md:w-auto";
+            } else if (rpm >= peakRpm - 200 && rpm <= peakRpm + 300 && shiftFactor > 0.75) {
+                statusBanner.innerText = "Trạng thái: Momen xoắn lớn nhất";
+                statusBanner.className = "px-4 py-2 rounded-lg font-bold text-center text-sm shadow-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 w-full md:w-auto";
+            } else if (rpm < peakRpm - 200 && shiftFactor > 0.65) {
+                statusBanner.innerText = "Trạng thái: Vùng tăng tốc chậm (Sang số sớm / Lỳ máy)";
+                statusBanner.className = "px-4 py-2 rounded-lg font-bold text-center text-sm shadow-md bg-amber-500/20 text-amber-400 border border-amber-500/30 w-full md:w-auto";
+            } else if (rpm > peakRpm - 1000 && shiftFactor < 0.75) {
+                statusBanner.innerText = "Trạng thái: Dư rpm, bi quá nhẹ hoặc Lò xo quá cứng";
+                statusBanner.className = "px-4 py-2 rounded-lg font-bold text-center text-sm shadow-md bg-rose-500/20 text-rose-400 border border-rose-500/30 w-full md:w-auto";
+            } else {
+                statusBanner.innerText = "Trạng thái: Vùng tăng tốc độ";
+                statusBanner.className = "px-4 py-2 rounded-lg font-bold text-center text-sm shadow-md bg-sky-500/20 text-sky-400 border border-sky-500/30 w-full md:w-auto";
+            }
+        }
+
+        function drawHPCharts(currSpeedPercent, currWheelHP, sliderRPM, sliderWeight, sliderSpring, frontAngle, rearAngle, maxSpeedKmh, peakRpm) {
+            const R_front_min = 25;
+            const R_front_max = frontMaxD / 2;
+            const R_rear_min = 35;
+            const R_rear_max = rearMaxD / 2;
+
+            const maxCvtTransmissionRatio = 2.64;
+            const finalReduction = 10.5;
+            const wheelDiameterM = 0.58;
+
+            // 1. Calculate Potential Line Points (Solid Rose Red)
+            const maxReachableSpeedPercentAtSliderRPM = (sliderRPM / 10000) * 100;
+
+    const speedPoints = [];
+    for (let pct = 0; pct <= 100; pct += 1) {
+        const v = (pct / 100) * maxSpeedKmh;
+        const wheelRPM = v / (wheelDiameterM * Math.PI * 60 / 1000);
+        
+        const requiredRatio = sliderRPM / (wheelRPM * finalReduction || 0.001);
+        const actualRatio = Math.min(Math.max(requiredRatio, 0.82), maxCvtTransmissionRatio);
+        const calculatedRPM = wheelRPM * finalReduction * actualRatio;
+        
+        const sf_potential = Math.min(Math.max((maxCvtTransmissionRatio - actualRatio) / (maxCvtTransmissionRatio - 0.82 || 1), 0), 1);
+
+        let engineHPAtV = 100 * Math.exp(-0.5 * Math.pow((calculatedRPM - peakRpm) / 2200, 2));
+        let effAtV = 0.82;
+        if (pct < 12) effAtV *= (pct / 12);
+        if (calculatedRPM > 8500) effAtV -= ((calculatedRPM - 8500) / 1500) * 0.10;
+        effAtV = Math.max(0, Math.min(effAtV, 0.85));
+
+        const m_pot = sliderWeight / 1000;
+        const M_pot_tot = 6 * m_pot;
+        const omega_pot = (calculatedRPM * 2 * Math.PI) / 60;
+        const r_bi_pot = 0.030 + 0.030 * sf_potential;
+        const Fc_pot = M_pot_tot > 0 ? M_pot_tot * Math.pow(omega_pot, 2) * r_bi_pot : 0;
+
+        const theta_ramp_rad = (20 * Math.PI) / 180;
+        const frontAngleRad = (frontAngle * Math.PI) / 180;
+        const F_front_ax_pot = (Fc_pot * Math.tan(theta_ramp_rad)) / Math.tan(frontAngleRad);
+
+        const activeSpring_pot = sliderSpring * (0.8 + 0.4 * sf_potential);
+        const F_rear_ax_pot = activeSpring_pot * 9.81;
+        const rearAngleRad = (rearAngle * Math.PI) / 180;
+        const F_rear_belt_pot = F_rear_ax_pot / Math.tan(rearAngleRad);
+
+        const potForceRatio = F_front_ax_pot / (F_rear_belt_pot || 1);
+
+        // --- BỔ SUNG MÔ PHỎNG HIỆN TƯỢNG TRƯỢT ĐAI (TẠO DẠNG HÌNH CHỮ U) ---
+        // Góc tiêu chuẩn tiếp xúc mặt đai lý tưởng là 15 độ. 
+        // Khi góc puly trước hoặc sau lệch khỏi 15 độ (quá dốc hoặc quá thoải so với má đai), 
+        // lực kẹp mất cân bằng gây ra hiện tượng trượt cơ học làm sụt công suất truyền tải.
+        const stdFrontAngle = 15.0;
+        const stdRear = 16.0;
+        
+        // Độ lệch góc so với chuẩn
+        const mismatchFront = frontAngle - stdFrontAngle; // Âm hoặc dương
+        const mismatchRear = stdRear - rearAngle;         // Dương nếu puly sau giảm xuống 14°-15° (cực đoan)
+        
+        let slipSeverityPenalty = 1.0;
+        
+        // Puly trước ít nhạy cảm hơn (cho phép biên độ dao động thoải mái từ 13.5° - 16° ít bị sụt cấu hình)
+        const frontSensitivityPenalty = Math.max(0, Math.abs(mismatchFront) - 1.5) * 0.05;
+
+        // Puly sau cực đoan: Nếu góc puly sau giảm xuống dưới 16° (mismatchRear > 0) kết hợp bi nồi nhẹ (< 14g)
+        if (mismatchRear > 0) {
+            // Bi nồi càng nhẹ so với mốc tiêu chuẩn (14g) thì lực kéo văng và độ siết trượt càng khốc liệt
+            const weightFactor = Math.max(0, (14.0 - sliderWeight) / 14.0); // Bi càng nhẹ, hệ số càng lớn
+            
+            // Biên độ trượt hình chữ U tập trung mạnh ở vùng chuyển số trung gian (30% - 70% tốc độ)
+            const uShapeFactor = Math.sin((pct / 100) * Math.PI); 
+            
+            // Công thức nhân hệ số cực đoan cho puly sau và trọng lượng bi
+            const extremeRearPenalty = (mismatchRear * 0.25) * (1.0 + weightFactor * 1.5) * uShapeFactor;
+            
+            slipSeverityPenalty -= extremeRearPenalty;
+        }
+
+        // Trừ thêm một ít nếu puly trước lệch quá xa vùng an toàn
+        slipSeverityPenalty -= frontSensitivityPenalty * Math.sin((pct / 100) * Math.PI);
+        
+        // Giới hạn sàn hiệu suất trượt tối thiểu để đồ thị không bị thủng đáy hoàn toàn về 0
+        slipSeverityPenalty = Math.max(0.20, slipSeverityPenalty);
+        let clampingPenalty = 1.0;
+        if (potForceRatio < 0.65) {
+            clampingPenalty = Math.max(0.35, potForceRatio / 0.65);
+        }
+
+        let wheelHPAtV = engineHPAtV * effAtV * clampingPenalty * slipSeverityPenalty;
+
+        if (pct > maxReachableSpeedPercentAtSliderRPM) {
+    // Độ chênh lệch phần trăm tốc độ vượt qua giới hạn
+    const excessPct = pct - maxReachableSpeedPercentAtSliderRPM;
+    
+    // Tạo độ dốc lài lài (giảm tuyến tính mềm hoặc theo hàm mũ thay vì rớt gãy khúc)
+    // Tăng mẫu số (ví dụ từ 25.0 hoặc 30.0) nếu muốn đường dốc thoải hơn nữa
+    const smoothDrop = Math.max(0, 1 - (excessPct / 25.0)); 
+    
+    // Nhân vào công suất để đường biểu diễn uốn cong và lài lài xuống sát đáy
+    wheelHPAtV = wheelHPAtV * Math.pow(smoothDrop, 1.5);
+}
+        
+        speedPoints.push({ x: pct, wheelHP: wheelHPAtV });
+    }
+
+            // 2. Calculate Actual Operating Sweep Trajectory Line Points (Dashed Amber)
+            const trajectoryPoints = [];
+            for (let tempRpm = 1500; tempRpm <= 10000; tempRpm += 100) {
+                const tempM = sliderWeight / 1000;
+                const tempM_total = 6 * tempM;
+                const tempOmega = (tempRpm * 2 * Math.PI) / 60;
+                
+                let tempSF = 0.5; 
+                for (let iter = 0; iter < 3; iter++) {
+                    const r_bi_temp = 0.030 + 0.030 * tempSF;
+                    const F_c_temp = tempM_total > 0 ? tempM_total * Math.pow(tempOmega, 2) * r_bi_temp : 0;
+                    const F_c_axial_temp = F_c_temp * Math.tan((20 * Math.PI) / 180);
+                    const F_front_axial_temp = F_c_axial_temp / Math.tan((frontAngle * Math.PI) / 180);
+                    
+                    const activeSpringKg_temp = sliderSpring * (0.8 + 0.4 * tempSF);
+                    const F_rear_axial_spring_temp = activeSpringKg_temp * 9.81;
+                    const F_rear_belt_tension_temp = F_rear_axial_spring_temp / Math.tan((rearAngle * Math.PI) / 180);
+                    
+                    const forceRatio_temp = F_front_axial_temp / (F_rear_belt_tension_temp || 1);
+                    tempSF = Math.min(Math.max((forceRatio_temp - 0.5) / 1.5, 0), 1);
+                }
+                
+                const tempCvtRatio = 2.64 - (2.64 - 0.82) * tempSF;
+                const tempWheelRPM = tempRpm / (tempCvtRatio * finalReduction);
+                const tempVehicleSpeedKmh = tempWheelRPM * wheelDiameterM * Math.PI * 60 / 1000;
+                const tempSpeedPercent = (tempVehicleSpeedKmh / maxSpeedKmh) * 100;
+                
+                const tempEngineHP = 100 * Math.exp(-0.5 * Math.pow((tempRpm - peakRpm) / 2200, 2));
+                let tempEff = 0.82;
+                if (tempSpeedPercent < 12) tempEff *= (tempSpeedPercent / 12);
+                if (tempRpm > 8500) tempEff -= ((tempRpm - 8500) / 1500) * 0.10;
+                tempEff = Math.max(0, Math.min(tempEff, 0.85));
+                
+                trajectoryPoints.push({ x: Math.min(100, tempSpeedPercent), y: tempEngineHP * tempEff });
+            }
+
+            // Header HUD text
+            const currentSpeedIdx = Math.min(Math.max(Math.round(currSpeedPercent), 0), 100);
+            const livePotentialHP = speedPoints[currentSpeedIdx] ? speedPoints[currentSpeedIdx].wheelHP : 0;
+            hpPotentialLive.innerText = `Tiềm năng @ ${sliderRPM} RPM: ${livePotentialHP.toFixed(1)}% HP (Giới hạn ${maxReachableSpeedPercentAtSliderRPM.toFixed(0)}% Tốc độ)`;
+
+            const setupCanvasGrid = (cCtx, cCanvas) => {
+                cCtx.fillStyle = '#090d16';
+                cCtx.fillRect(0, 0, cCanvas.width, cCanvas.height);
+
+                const mL = 40, mR = 15, mT = 25, mB = 25;
+                const pW = cCanvas.width - mL - mR;
+                const pH = cCanvas.height - mT - mB;
+
+                cCtx.strokeStyle = '#1e293b';
+                cCtx.lineWidth = 1;
+                cCtx.fillStyle = '#64748b';
+                cCtx.font = '9px monospace';
+
+                // Y-Axis Grid
+                cCtx.textAlign = 'right';
+                for (let i = 0; i <= 100; i += 25) {
+                    const y = mT + pH * (1 - i / 100);
+                    cCtx.beginPath();
+                    cCtx.moveTo(mL, y);
+                    cCtx.lineTo(mL + pW, y);
+                    cCtx.stroke();
+                    cCtx.fillText(`${i}%`, mL - 5, y + 3);
+                }
+
+                // X-Axis Grid
+                cCtx.textAlign = 'center';
+                for (let percent = 0; percent <= 100; percent += 20) {
+                    const x = mL + (percent / 100) * pW;
+                    cCtx.beginPath();
+                    cCtx.moveTo(x, mT);
+                    cCtx.lineTo(x, mT + pH);
+                    cCtx.stroke();
+                    cCtx.fillText(`${percent}%`, x, mT + pH + 14);
+                }
+
+                return { mL, mR, mT, mB, pW, pH };
+            };
+
+            // CHART 1: POTENTIAL LINE
+            const g1 = setupCanvasGrid(hpPotentialCtx, hpPotentialCanvas);
+            
+            hpPotentialCtx.beginPath();
+            hpPotentialCtx.lineWidth = 2.5;
+            hpPotentialCtx.strokeStyle = '#f43f5e';
+            for (let i = 0; i < speedPoints.length; i++) {
+                const xPos = g1.mL + (speedPoints[i].x / 100) * g1.pW;
+                const yPos = g1.mT + g1.pH * (1 - speedPoints[i].wheelHP / 100);
+                if (i === 0) hpPotentialCtx.moveTo(xPos, yPos);
+                else hpPotentialCtx.lineTo(xPos, yPos);
+            }
+            hpPotentialCtx.stroke();
+
+            // CHART 2: ACTUAL TRAJECTORY LINE
+            const g2 = setupCanvasGrid(hpTrajectoryCtx, hpTrajectoryCanvas);
+
+            hpTrajectoryCtx.save();
+            hpTrajectoryCtx.beginPath();
+            hpTrajectoryCtx.lineWidth = 2.2;
+            hpTrajectoryCtx.strokeStyle = '#f59e0b';
+            hpTrajectoryCtx.setLineDash([4, 4]);
+            for (let i = 0; i < trajectoryPoints.length; i++) {
+                const xPos = g2.mL + (trajectoryPoints[i].x / 100) * g2.pW;
+                const yPos = g2.mT + g2.pH * (1 - trajectoryPoints[i].y / 100);
+                if (i === 0) hpTrajectoryCtx.moveTo(xPos, yPos);
+                else hpTrajectoryCtx.lineTo(xPos, yPos);
+            }
+            hpTrajectoryCtx.stroke();
+            hpTrajectoryCtx.restore();
+
+            // Draw Pointer on Chart 2
+            const safeSpeedPercent = Math.min(Math.max(currSpeedPercent, 0), 100);
+            const liveX = g2.mL + (safeSpeedPercent / 100) * g2.pW;
+            const liveWheelY = g2.mT + g2.pH * (1 - currWheelHP / 100);
+
+            hpTrajectoryCtx.save();
+            hpTrajectoryCtx.strokeStyle = '#06b6d4';
+            hpTrajectoryCtx.lineWidth = 1.2;
+            hpTrajectoryCtx.setLineDash([3, 3]);
+
+            hpTrajectoryCtx.beginPath();
+            hpTrajectoryCtx.moveTo(liveX, g2.mT + g2.pH);
+            hpTrajectoryCtx.lineTo(liveX, liveWheelY);
+            hpTrajectoryCtx.stroke();
+
+            hpTrajectoryCtx.beginPath();
+            hpTrajectoryCtx.moveTo(g2.mL, liveWheelY);
+            hpTrajectoryCtx.lineTo(liveX, liveWheelY);
+            hpTrajectoryCtx.stroke();
+            hpTrajectoryCtx.restore();
+
+            const tagW = 85;
+            const tagH = 20;
+            let tagX = liveX - 100;
+            let tagY = liveWheelY - 30;
+            let angle = 30 * Math.PI / 180; 
+
+            if (safeSpeedPercent <= 60) {
+                tagX = liveX + 20;
+                angle = 150 * Math.PI / 180; 
+            }
+            if (liveWheelY < 45) {
+                tagY = liveWheelY + 10;
+                angle = -30 * Math.PI / 180; 
+                if (safeSpeedPercent <= 60) {
+                    angle = -150 * Math.PI / 180;
+                }
+            }
+
+            hpTrajectoryCtx.save();
+            hpTrajectoryCtx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+            hpTrajectoryCtx.strokeStyle = '#06b6d4';
+            hpTrajectoryCtx.lineWidth = 1.5;
+            drawRoundRect(hpTrajectoryCtx, tagX, tagY, tagW, tagH, 5);
+            hpTrajectoryCtx.fill();
+            hpTrajectoryCtx.stroke();
+
+            hpTrajectoryCtx.fillStyle = '#ffffff';
+            hpTrajectoryCtx.font = 'bold 9px sans-serif';
+            hpTrajectoryCtx.textAlign = 'center';
+            hpTrajectoryCtx.textBaseline = 'middle';
+            hpTrajectoryCtx.fillText(`${safeSpeedPercent.toFixed(1)}% | ${currWheelHP.toFixed(1)}%`, tagX + tagW/2, tagY + tagH/2);
+            hpTrajectoryCtx.restore();
+
+            hpTrajectoryCtx.save();
+            const startX = liveX - 20 * Math.cos(angle);
+            const startY = liveWheelY - 20 * Math.sin(angle);
+            const arrowEndX = liveX - 6 * Math.cos(angle);
+            const arrowEndY = liveWheelY - 6 * Math.sin(angle);
+
+            hpTrajectoryCtx.strokeStyle = '#06b6d4';
+            hpTrajectoryCtx.lineWidth = 1.5;
+            hpTrajectoryCtx.beginPath();
+            hpTrajectoryCtx.moveTo(startX, startY);
+            hpTrajectoryCtx.lineTo(arrowEndX, arrowEndY);
+            hpTrajectoryCtx.stroke();
+
+            const arrowSize = 4;
+            hpTrajectoryCtx.fillStyle = '#06b6d4';
+            hpTrajectoryCtx.beginPath();
+            hpTrajectoryCtx.moveTo(arrowEndX, arrowEndY);
+            hpTrajectoryCtx.lineTo(arrowEndX - arrowSize * Math.cos(angle - Math.PI/6), arrowEndY - arrowSize * Math.sin(angle - Math.PI/6));
+            hpTrajectoryCtx.lineTo(arrowEndX - arrowSize * Math.cos(angle + Math.PI/6), arrowEndY - arrowSize * Math.sin(angle + Math.PI/6));
+            hpTrajectoryCtx.closePath();
+            hpTrajectoryCtx.fill();
+            hpTrajectoryCtx.restore();
+
+            hpTrajectoryCtx.beginPath();
+            hpTrajectoryCtx.arc(liveX, liveWheelY, 5 + Math.abs(Math.sin(Date.now() / 150) * 2.5), 0, 2 * Math.PI);
+            hpTrajectoryCtx.fillStyle = 'rgba(244, 63, 94, 0.3)';
+            hpTrajectoryCtx.fill();
+
+            hpTrajectoryCtx.beginPath();
+            hpTrajectoryCtx.arc(liveX, liveWheelY, 3.5, 0, 2 * Math.PI);
+            hpTrajectoryCtx.fillStyle = '#ffffff';
+            hpTrajectoryCtx.fill();
+            hpTrajectoryCtx.strokeStyle = '#f43f5e';
+            hpTrajectoryCtx.lineWidth = 2;
+            hpTrajectoryCtx.stroke();
+        }
+
+        function updateDebugLog(p) {
+            const maxReachableSpeedPercentAtSliderRPM = (p.rpm / 10000) * 100;
+            const maxReachableKmhAtSliderRPM = (p.rpm / (0.82 * p.finalReduction)) * 0.58 * Math.PI * 60 / 1000;
+            const opt = p.optTuning;
+
+            debugConsole.innerHTML = `
+<div class="border-b border-emerald-950 pb-2 mb-2 font-bold text-slate-300">== THAM SỐ ĐẦU VÀO VÀ ĐỘNG LỰC HỌC ==</div>
+<div>[1] Vận tốc góc cốt máy (&omega;):</div>
+<div class="pl-4 text-emerald-400/80">&omega; = (2 * &pi; * RPM) / 60</div>
+<div class="pl-4 text-slate-300">&omega; = (2 * 3.1416 * ${p.rpm}) / 60 = <span class="text-rose-400 font-semibold">${p.omega.toFixed(2)} rad/s</span></div>
+
+<div class="mt-2">[2] Bán kính chạy bi động lực học (r_bi):</div>
+<div class="pl-4 text-emerald-400/80">r_bi = 30mm + 30mm * Shift_Factor</div>
+<div class="pl-4 text-slate-300">r_bi = 30mm + 30mm * ${(p.shiftFactor * 100).toFixed(1)}% = <span class="text-rose-400 font-semibold">${(p.r_bi * 1000).toFixed(1)} mm</span></div>
+
+<div class="mt-2">[3] Lực ly tâm tổng của 6 viên bi (F_c):</div>
+<div class="pl-4 text-emerald-400/80">Fc = M_total * &omega;² * r_bi</div>
+<div class="pl-4 text-slate-300">Fc = (6 * ${p.weight}g) * ${p.omega.toFixed(1)}² * ${p.r_bi.toFixed(3)}m = <span class="text-rose-400 font-semibold">${p.F_c.toFixed(1)} N</span></div>
+
+<div class="mt-2">[4] Lực ép hướng trục trước (F_front_axial):</div>
+<div class="pl-4 text-emerald-400/80">F_front_axial = (Fc * tan(20°)) / tan(&theta;_front)</div>
+<div class="pl-4 text-slate-300">F_front_axial = (${Math.round(p.F_c)} * 0.364) / tan(${p.frontAngleDeg.toFixed(1)}°) = <span class="text-rose-400 font-semibold">${p.F_front_axial.toFixed(1)} N</span></div>
+
+<div class="mt-2 border-t border-amber-900/60 pt-2 font-bold text-amber-400">== GỢI Ý CẤU HÌNH TỐI ƯU (SWEET SPOT TUNING @ ${p.peakRpm} RPM) ==</div>
+<div class="text-slate-300 mb-1">Mục tiêu: Ghim tua máy sang số trùng khớp với Tua Đỉnh (${p.peakRpm} RPM) để đạt công suất lớn nhất:</div>
+
+<div class="pl-2 border-l-2 border-amber-500/50 space-y-1">
+<div>💡 <span class="text-amber-300 font-bold">Khối lượng Bi Nồi đề xuất:</span> <span class="text-amber-400 font-extrabold text-sm">${opt.optWeight.toFixed(1)} g</span></div>
+<div class="pl-4 text-[11px] text-slate-400">(Dựa trên Lò xo ${p.springKg}kg & Góc puly trước ${p.frontAngleDeg.toFixed(1)}° hiện tại)</div>
+
+<div>💡 <span class="text-amber-300 font-bold">Lực Lò Xo Trụ đề xuất:</span> <span class="text-amber-400 font-extrabold text-sm">${opt.optSpring.toFixed(1)} kg</span></div>
+<div class="pl-4 text-[11px] text-slate-400">(Dựa trên Bi ${p.weight.toFixed(1)}g & Góc puly trước ${p.frontAngleDeg.toFixed(1)}° hiện tại)</div>
+
+<div>💡 <span class="text-amber-300 font-bold">Góc Nghiêng Puly Trước đề xuất:</span> <span class="text-amber-400 font-extrabold text-sm">${opt.optFrontAngle.toFixed(1)}°</span></div>
+<div class="pl-4 text-[11px] text-slate-400">(Dựa trên Bi ${p.weight.toFixed(1)}g & Lò xo ${p.springKg}kg hiện tại)</div>
+</div>
+
+<div class="mt-2 border-t border-emerald-950 pt-2 font-bold text-rose-400">== CẤU HÌNH & GIỚI HẠN ĐỒ THỊ TIỀM NĂNG TẠI ${p.rpm} RPM (CHART 1) ==</div>
+<div>[5] Vận tốc giới hạn tối đa ở tua máy ${p.rpm} RPM (Trục X Chart 1):</div>
+<div class="pl-4 text-rose-300/80">V_max_at_RPM = [ (RPM_hiện_tại / (0.82 * Final_Reduction)) * D_wheel * &pi; * 60 ] / 1000</div>
+<div class="pl-4 text-slate-300">V_max = [ (${p.rpm} / (0.82 * ${p.finalReduction})) * 0.58 * 3.1416 * 60 ] / 1000 = <span class="text-rose-400 font-bold">${maxReachableKmhAtSliderRPM.toFixed(1)} km/h</span></div>
+<div class="pl-4 text-rose-300/80">X_Cutoff_Percent = (${p.rpm} / 10000) * 100%</div>
+<div class="pl-4 text-slate-300">X_Cutoff = (${p.rpm} / 10000) * 100 = <span class="text-rose-400 font-bold">${maxReachableSpeedPercentAtSliderRPM.toFixed(1)}% Tốc độ tối đa</span></div>
+
+<div class="mt-2 border-t border-emerald-950 pt-2 font-bold text-amber-400">== CÔNG THỨC VÀ TỌA ĐỘ ĐIỂM CHẤM THỰC TẾ (LIVE TRAJECTORY POINT) ==</div>
+<div>[6] Tốc độ bánh sau & % Tốc độ tối đa (Trục X):</div>
+<div class="pl-4 text-amber-300/80">V_kmh = [ (RPM / (Ratio * Final_Reduction)) * D_wheel * &pi; * 60 ] / 1000</div>
+<div class="pl-4 text-slate-300">V_kmh = [ (${p.rpm} / (${p.cvtTransmissionRatio.toFixed(2)} * ${p.finalReduction})) * 0.58 * 3.1416 * 60 ] / 1000 = <span class="text-amber-400 font-bold">${p.vehicleSpeedKmh.toFixed(1)} km/h</span></div>
+<div class="pl-4 text-amber-300/80">X_Percent = (V_kmh / V_max_10k_rpm) * 100%</div>
+<div class="pl-4 text-slate-300">X = (${p.vehicleSpeedKmh.toFixed(1)} / ${p.maxSpeedKmh.toFixed(1)}) * 100 = <span class="text-cyan-400 font-bold">${p.speedPercent.toFixed(1)}% Tốc độ</span></div>
+
+<div class="mt-2">[7] Công suất bám bánh sau thực tế (Trục Y):</div>
+<div class="pl-4 text-amber-300/80">HP_engine = 100 * exp( -0.5 * [ (RPM - Peak_RPM) / 2200 ]² )</div>
+<div class="pl-4 text-slate-300">HP_engine = 100 * exp( -0.5 * [ (${p.rpm} - ${p.peakRpm}) / 2200 ]² ) = <span class="text-slate-200 font-semibold">${p.liveEngineHP.toFixed(1)}% HP máy</span></div>
+<div class="pl-4 text-amber-300/80">Y_Percent = HP_engine * Hiệu_suất_truyền_động (&eta;)</div>
+<div class="pl-4 text-slate-300">Y = ${p.liveEngineHP.toFixed(1)}% * ${(p.efficiency * 100).toFixed(1)}% = <span class="text-cyan-400 font-bold">${p.liveWheelHP.toFixed(1)}% Wheel HP</span></div>
+
+<div class="mt-2 border-t border-emerald-950 pt-2 font-bold text-slate-300">== THÔNG SỐ CẤU HÌNH THỜI GIAN THỰC ==</div>
+<div class="pl-4 text-slate-300">Tỷ số truyền CVT (cvtRatio): <span class="text-emerald-400 font-semibold">${p.cvtTransmissionRatio.toFixed(2)} (2.64 -> 0.82)</span></div>
+<div class="pl-4 text-slate-300">Hành trình mở nồi (Shift Factor): <span class="text-rose-400 font-bold">${(p.shiftFactor * 100).toFixed(1)}%</span></div>
+<div class="pl-4 text-slate-300">Bán kính puly trước: <span class="text-emerald-400 font-semibold">${p.R_front_active.toFixed(1)} mm</span> | Sau: <span class="text-emerald-400 font-semibold">${p.R_rear_active.toFixed(1)} mm</span></div>
+            `;
+        }
+
+        function drawCVT(R_front_act, R_rear_act, R_front_max, R_rear_max, rpm) {
+            const maxD = Math.max(frontMaxD, rearMaxD);
+            const scale = 75 / (maxD / 2); 
+
+            const rf = R_front_act * scale;
+            const rr = R_rear_act * scale;
+
+            const rf_max = R_front_max * scale;
+            const rr_max = R_rear_max * scale;
+
+            ctx.fillStyle = '#090d16';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const cx1 = 120;
+            const cy1 = 100;
+            const cx2 = 380;
+            const cy2 = 100;
+
+            // Axis shaft
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(cx1, cy1);
+            ctx.lineTo(cx2, cy2);
+            ctx.stroke();
+
+            // 1. Front Pulley
+            ctx.beginPath();
+            ctx.arc(cx1, cy1, rf_max + 10, 0, 2 * Math.PI);
+            ctx.fillStyle = '#1e293b';
+            ctx.fill();
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            ctx.save();
+            ctx.translate(cx1, cy1);
+            ctx.rotate(beltOffset * (rpm / 5000));
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1;
+            for(let i=0; i<6; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0,0);
+                ctx.lineTo(Math.cos(i*Math.PI/3)*rf_max, Math.sin(i*Math.PI/3)*rf_max);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // 2. Rear Pulley
+            ctx.beginPath();
+            ctx.arc(cx2, cy2, rr_max + 10, 0, 2 * Math.PI);
+            ctx.fillStyle = '#1e293b';
+            ctx.fill();
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            ctx.save();
+            ctx.translate(cx2, cy2);
+            ctx.rotate(-beltOffset * (rpm / 5000) * (R_front_act / R_rear_act));
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1;
+            for(let i=0; i<6; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0,0);
+                ctx.lineTo(Math.cos(i*Math.PI/3)*rr_max, Math.sin(i*Math.PI/3)*rr_max);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // 3. Belt with closed-path tangents
+            const dist = cx2 - cx1;
+            const theta = Math.asin((rr - rf) / dist);
+
+            const xf1 = cx1 + rf * Math.sin(theta);
+            const yf1 = cy1 - rf * Math.cos(theta);
+            const xf2 = cx1 - rf * Math.sin(theta);
+            const yf2 = cy1 + rf * Math.cos(theta);
+
+            const xr1 = cx2 + rr * Math.sin(theta);
+            const yr1 = cy2 - rr * Math.cos(theta);
+            const xr2 = cx2 - rr * Math.sin(theta);
+            const yr2 = cy2 + rr * Math.cos(theta);
+
+            ctx.save();
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            ctx.beginPath();
+            ctx.moveTo(xf1, yf1); 
+            ctx.lineTo(xr1, yr1); 
+            ctx.arc(cx2, cy2, rr, 1.5 * Math.PI + theta, 0.5 * Math.PI + theta, false);
+            ctx.lineTo(xf2, yf2); 
+            ctx.arc(cx1, cy1, rf, 0.5 * Math.PI + theta, 1.5 * Math.PI + theta, false);
+            ctx.closePath();
+
+            // Belt outer body
+            ctx.strokeStyle = '#f43f5e';
+            ctx.lineWidth = 7;
+            ctx.stroke();
+
+            // Belt moving teeth
+            ctx.strokeStyle = '#090d16';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 6]);
+            ctx.lineDashOffset = beltOffset;
+            ctx.stroke();
+            ctx.restore();
+
+            // Center caps
+            ctx.fillStyle = '#cbd5e1';
+            ctx.beginPath();
+            ctx.arc(cx1, cy1, 8, 0, Math.PI*2);
+            ctx.arc(cx2, cy2, 8, 0, Math.PI*2);
+            ctx.fill();
+
+            // Display live radius
+            ctx.fillStyle = '#f1f5f9';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.textBaseline = 'middle';
+            ctx.textAlign = 'center';
+            ctx.fillText(`r₁ = ${R_front_act.toFixed(1)}mm`, cx1, cy1 + rf_max + 22);
+            ctx.fillText(`r₂ = ${R_rear_act.toFixed(1)}mm`, cx2, cy2 + rr_max + 22);
+        }
+
+        // Animation Loop
+        function animate() {
+            const rpm = parseFloat(rpmSlider.value);
+            beltOffset -= (rpm / 60) * 0.15;
+            
+            // Smoothen transitions
+            shiftFactor += (targetShiftFactor - shiftFactor) * 0.08;
+            if (Math.abs(shiftFactor - targetShiftFactor) < 0.001) {
+                shiftFactor = targetShiftFactor;
+            }
+
+            updatePhysicsAndVisuals();
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        // Event Listeners
+        rpmSlider.addEventListener('input', updatePhysicsAndVisuals);
+        weightSlider.addEventListener('input', updatePhysicsAndVisuals);
+        springSlider.addEventListener('input', updatePhysicsAndVisuals);
+        frontAngleSlider.addEventListener('input', updatePhysicsAndVisuals);
+        rearAngleSlider.addEventListener('input', updatePhysicsAndVisuals);
+        peakRpmSlider.addEventListener('input', updatePhysicsAndVisuals);
+
+        // Start Simulator
+        window.onload = function() {
+            animate();
+        };
+    </script>
+</body>
+</html>
