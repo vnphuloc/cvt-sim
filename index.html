@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bộ Giả Lập CVT - SH160 Stage 1</title>
+    <title>CVT Dynamics Simulator - SH160 Stage 1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -27,12 +27,12 @@
         <div class="flex flex-col md:flex-row justify-between items-center border-b border-slate-800 pb-6 gap-4">
             <div>
                 <h1 class="text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-amber-500">
-                    GIẢ LẬP ĐỘNG LỰC HỌC CVT
+                    CVT DYNAMICS SIMULATOR
                 </h1>
-                <p class="text-slate-400 text-sm mt-1">Phân tích lực kẹp cơ học, tỉ số truyền và hiệu suất hao hụt công suất thời gian thực</p>
+                <p class="text-slate-400 text-sm mt-1">Real-time mechanical clamping force, transmission ratio, and power efficiency analysis</p>
             </div>
             <div id="statusBanner" class="px-4 py-2 rounded-lg font-bold text-center text-sm shadow-md transition-all duration-300 w-full md:w-auto">
-                Đang tính toán cân bằng lực...
+                Calculating force equilibrium...
             </div>
         </div>
 
@@ -42,24 +42,24 @@
             <!-- CHART 1: POTENTIAL LINE DYNAMIC TO SELECTED RPM & ALL PARAMETERS -->
             <div class="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden">
                 <div class="w-full flex justify-between items-center mb-2 px-1">
-                    <span class="text-xs font-bold text-rose-500 tracking-wider uppercase">1. ĐỒ THỊ CÔNG SUẤT TIỀM NĂNG THEO TUA MÁY</span>
-                    <span class="text-[10px] code-font text-rose-400 font-bold" id="hpPotentialLive">Tiềm năng: 0% HP @ 0% Tua</span>
+                    <span class="text-xs font-bold text-rose-500 tracking-wider uppercase">1. POTENTIAL POWER CURVE BY RPM</span>
+                    <span class="text-[10px] code-font text-rose-400 font-bold" id="hpPotentialLive">Potential: 0% HP @ 0% RPM</span>
                 </div>
                 <canvas id="hpPotentialCanvas" width="450" height="200" class="w-full h-auto bg-slate-950"></canvas>
                 <div class="absolute bottom-2 left-2 text-[9px] text-slate-500 font-medium select-none">
-                    *Phụ thuộc toàn bộ cấu hình puly, bi, lò xo & vòng tua chọn
+                    *Depends on pulley geometry, roller weights, spring stiffness & selected RPM
                 </div>
             </div>
 
             <!-- CHART 2: ACTUAL TRAJECTORY LINE -->
             <div class="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden">
                 <div class="w-full flex justify-between items-center mb-2 px-1">
-                    <span class="text-xs font-bold text-amber-500 tracking-wider uppercase">2. LỘ TRÌNH QUÉT THỰC TẾ (TRAJECTORY)</span>
-                    <span class="text-[10px] code-font text-amber-400 font-bold" id="hpLivePoint">Thực tế: 0% @ 0% Tốc độ</span>
+                    <span class="text-xs font-bold text-amber-500 tracking-wider uppercase">2. ACTUAL SWEEP TRAJECTORY</span>
+                    <span class="text-[10px] code-font text-amber-400 font-bold" id="hpLivePoint">Actual: 0% @ 0% Speed</span>
                 </div>
                 <canvas id="hpTrajectoryCanvas" width="450" height="200" class="w-full h-auto bg-slate-950"></canvas>
                 <div class="absolute bottom-2 left-2 text-[9px] text-slate-500 font-medium select-none">
-                    *Tốc độ và công suất thực tế khi vặn ga tăng dần tua máy
+                    *Actual speed and wheel power across RPM sweep
                 </div>
             </div>
 
@@ -74,24 +74,24 @@
                 <!-- Section 1: Pulley Geometry Configurations -->
                 <div class="bg-slate-950/60 p-5 rounded-xl border border-slate-800/80 space-y-4">
                     <h3 class="text-rose-500 font-bold text-sm tracking-wider uppercase border-b border-slate-800 pb-2">
-                        1. Cấu Hình Đường Kính Puly (Hình Học)
+                        1. Pulley Geometry (Diameter)
                     </h3>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs text-slate-400 font-semibold mb-1">Max Puly Trước (mm)</label>
-                            <input type="number" id="frontMaxDInput" value="130" min="100" max="250" 
+                            <label class="block text-xs text-slate-400 font-semibold mb-1">Max Front Pulley (mm)</label>
+                            <input type="number" id="frontMaxDInput" value="130" min="100" max="250"
                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500 font-medium">
                         </div>
                         <div>
-                            <label class="block text-xs text-slate-400 font-semibold mb-1">Max Puly Sau (mm)</label>
-                            <input type="number" id="rearMaxDInput" value="162" min="100" max="250" 
+                            <label class="block text-xs text-slate-400 font-semibold mb-1">Max Rear Pulley (mm)</label>
+                            <input type="number" id="rearMaxDInput" value="162" min="100" max="250"
                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500 font-medium">
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="applyPulleySizes()" 
+                        <button onclick="applyPulleySizes()"
                                 class="w-full bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white font-bold py-2 px-4 rounded-lg text-xs transition duration-200 shadow-md">
-                            ÁP DỤNG HÌNH HỌC MỚI
+                            APPLY GEOMETRY
                         </button>
                     </div>
                 </div>
@@ -99,13 +99,13 @@
                 <!-- Section 2: Interactive Tuning Sliders -->
                 <div class="bg-slate-950/60 p-5 rounded-xl border border-slate-800/80 space-y-5">
                     <h3 class="text-rose-500 font-bold text-sm tracking-wider uppercase border-b border-slate-800 pb-2">
-                        2. Thông Số Vận Hành & Khối Lượng
+                        2. Operating Parameters & Mass
                     </h3>
                     
                     <!-- RPM Slider -->
                     <div class="space-y-1">
                         <div class="flex justify-between text-xs">
-                            <span class="text-slate-300 font-medium">Vòng Tua Máy Hiện Tại (Engine RPM)</span>
+                            <span class="text-slate-300 font-medium">Current Engine RPM</span>
                             <span class="text-rose-400 font-bold" id="rpmVal">5000 RPM</span>
                         </div>
                         <input type="range" id="rpmSlider" min="1500" max="10000" step="100" value="5000" class="w-full">
@@ -114,7 +114,7 @@
                     <!-- Roller Weight Slider (0g to 20g) -->
                     <div class="space-y-1">
                         <div class="flex justify-between text-xs">
-                            <span class="text-slate-300 font-medium">Khối Lượng Bi Nồi (Roller Weight)</span>
+                            <span class="text-slate-300 font-medium">Roller Weight</span>
                             <span class="text-rose-400 font-bold" id="weightVal">14.0 g</span>
                         </div>
                         <input type="range" id="weightSlider" min="0" max="20" step="0.5" value="14" class="w-full">
@@ -123,7 +123,7 @@
                     <!-- Spring Force Slider -->
                     <div class="space-y-1">
                         <div class="flex justify-between text-xs">
-                            <span class="text-slate-300 font-medium">Lực Lò Xo Trụ Sau (Spring Force)</span>
+                            <span class="text-slate-300 font-medium">Rear Main Spring Force</span>
                             <span class="text-rose-400 font-bold" id="springVal">44 kg</span>
                         </div>
                         <input type="range" id="springSlider" min="30" max="60" step="1" value="44" class="w-full">
@@ -132,7 +132,7 @@
                     <!-- Front Pulley Angle Slider (Step 0.5) -->
                     <div class="space-y-1">
                         <div class="flex justify-between text-xs">
-                            <span class="text-slate-300 font-medium">Góc Nghiêng Puly Trước (&theta;₁ - Front)</span>
+                            <span class="text-slate-300 font-medium">Front Pulley Sheave Angle (&theta;₁ - Front)</span>
                             <span class="text-rose-400 font-bold" id="frontAngleVal">14.0°</span>
                         </div>
                         <input type="range" id="frontAngleSlider" min="10" max="20" step="0.5" value="14" class="w-full">
@@ -141,7 +141,7 @@
                     <!-- Rear Pulley Angle Slider (Step 0.5) -->
                     <div class="space-y-1">
                         <div class="flex justify-between text-xs">
-                            <span class="text-slate-300 font-medium">Góc Nghiêng Puly Sau (&theta;₂ - Rear)</span>
+                            <span class="text-slate-300 font-medium">Rear Pulley Sheave Angle (&theta;₂ - Rear)</span>
                             <span class="text-rose-400 font-bold" id="rearAngleVal">16.0°</span>
                         </div>
                         <input type="range" id="rearAngleSlider" min="10" max="20" step="0.5" value="16" class="w-full">
@@ -150,7 +150,7 @@
                     <!-- Peak RPM Slider -->
                     <div class="space-y-1">
                         <div class="flex justify-between text-xs">
-                            <span class="text-slate-300 font-medium">Vòng Tua Đạt Đỉnh Máy (Peak RPM)</span>
+                            <span class="text-slate-300 font-medium">Engine Peak Power RPM</span>
                             <span class="text-rose-400 font-bold" id="peakRpmVal">8000 RPM</span>
                         </div>
                         <input type="range" id="peakRpmSlider" min="5000" max="10000" step="100" value="8000" class="w-full">
@@ -160,11 +160,11 @@
                 <!-- Real-time Quick Stats Grid -->
                 <div class="grid grid-cols-2 gap-4">
                     <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center">
-                        <span class="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tỷ Số Truyền Thực Tế (CVT)</span>
+                        <span class="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Actual Ratio (CVT)</span>
                         <span id="ratioDisplay" class="text-lg font-black text-emerald-400 mt-1 block">1.00</span>
                     </div>
                     <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center">
-                        <span class="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Trạng thái ép đai</span>
+                        <span class="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Belt Shift State</span>
                         <span id="shiftDisplay" class="text-lg font-black text-rose-400 mt-1 block">50.0%</span>
                     </div>
                 </div>
@@ -177,7 +177,7 @@
                 <div class="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden">
                     <canvas id="cvtCanvas" width="500" height="200" class="w-full max-w-full h-auto bg-slate-950"></canvas>
                     <div class="absolute bottom-2 left-2 text-[10px] text-slate-500 font-medium select-none">
-                        *Sợi đai dịch chuyển mượt mà bám sát theo điểm cân bằng lực cơ học thực tế
+                        *Belt smoothly shifts dynamically tracking physical mechanical equilibrium
                     </div>
                 </div>
 
@@ -270,7 +270,7 @@
             const rIn = parseFloat(rearMaxDInput.value);
 
             if (isNaN(fIn) || fIn < 100 || fIn > 250 || isNaN(rIn) || rIn < 100 || rIn > 250) {
-                alert("⚠️ Lỗi: Kích thước puly nằm trong khoảng an toàn (100mm - 250mm).");
+                alert("⚠️ Error: Pulley diameter must be within the safe range (100mm - 250mm).");
                 return;
             }
 
@@ -384,8 +384,8 @@
 
             // REAL-WORLD PHYSICAL SPECIFICATIONS (HONDA SH160 TRUYỀN ĐỘNG)
             const cvtTransmissionRatio = 2.64 - (2.64 - 0.82) * shiftFactor;
-            const finalReduction = 10.5; // Tỷ số truyền nhông láp sau chuẩn SH160
-            const wheelDiameterM = 0.58; // Đường kính bánh sau
+            const finalReduction = 10.5; // Standard SH160 final reduction ratio
+            const wheelDiameterM = 0.58; // Rear wheel diameter in meters
 
             const wheelRPM = rpm / (cvtTransmissionRatio * finalReduction);
             const vehicleSpeedKmh = wheelRPM * wheelDiameterM * Math.PI * 60 / 1000;
@@ -447,19 +447,19 @@
 
         function updateStatusText(rpm, shiftFactor, peakRpm) {
             if (rpm <= 1800) {
-                statusBanner.innerText = "Trạng thái: Garanti";
+                statusBanner.innerText = "Status: Idle";
                 statusBanner.className = "px-4 py-2 rounded-lg font-bold text-center text-sm shadow-md bg-slate-800 text-slate-300 w-full md:w-auto";
             } else if (rpm >= peakRpm - 200 && rpm <= peakRpm + 300 && shiftFactor > 0.75) {
-                statusBanner.innerText = "Trạng thái: Momen xoắn lớn nhất";
+                statusBanner.innerText = "Status: Peak Torque & Power Zone";
                 statusBanner.className = "px-4 py-2 rounded-lg font-bold text-center text-sm shadow-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 w-full md:w-auto";
             } else if (rpm < peakRpm - 200 && shiftFactor > 0.65) {
-                statusBanner.innerText = "Trạng thái: Vùng tăng tốc chậm (Sang số sớm / Lỳ máy)";
+                statusBanner.innerText = "Status: Sluggish Acceleration (Premature Upshift / Bogging)";
                 statusBanner.className = "px-4 py-2 rounded-lg font-bold text-center text-sm shadow-md bg-amber-500/20 text-amber-400 border border-amber-500/30 w-full md:w-auto";
             } else if (rpm > peakRpm - 1000 && shiftFactor < 0.75) {
-                statusBanner.innerText = "Trạng thái: Dư rpm, bi quá nhẹ hoặc Lò xo quá cứng";
+                statusBanner.innerText = "Status: Over-revving (Rollers too light or Spring too stiff)";
                 statusBanner.className = "px-4 py-2 rounded-lg font-bold text-center text-sm shadow-md bg-rose-500/20 text-rose-400 border border-rose-500/30 w-full md:w-auto";
             } else {
-                statusBanner.innerText = "Trạng thái: Vùng tăng tốc độ";
+                statusBanner.innerText = "Status: Acceleration Zone";
                 statusBanner.className = "px-4 py-2 rounded-lg font-bold text-center text-sm shadow-md bg-sky-500/20 text-sky-400 border border-sky-500/30 w-full md:w-auto";
             }
         }
@@ -511,40 +511,27 @@
 
         const potForceRatio = F_front_ax_pot / (F_rear_belt_pot || 1);
 
-        // --- BỔ SUNG MÔ PHỎNG HIỆN TƯỢNG TRƯỢT ĐAI (TẠO DẠNG HÌNH CHỮ U) ---
-        // Góc tiêu chuẩn tiếp xúc mặt đai lý tưởng là 15 độ. 
-        // Khi góc puly trước hoặc sau lệch khỏi 15 độ (quá dốc hoặc quá thoải so với má đai), 
-        // lực kẹp mất cân bằng gây ra hiện tượng trượt cơ học làm sụt công suất truyền tải.
+        // --- BELT SLIP SIMULATION (U-SHAPE PENALTY) ---
+        // Standard ideal sheave contact angle is 15 degrees.
+        // When front or rear angles deviate from standard, clamping force imbalances cause mechanical belt slip.
         const stdFrontAngle = 15.0;
         const stdRear = 16.0;
         
-        // Độ lệch góc so với chuẩn
-        const mismatchFront = frontAngle - stdFrontAngle; // Âm hoặc dương
-        const mismatchRear = stdRear - rearAngle;         // Dương nếu puly sau giảm xuống 14°-15° (cực đoan)
+        const mismatchFront = frontAngle - stdFrontAngle;
+        const mismatchRear = stdRear - rearAngle;
         
         let slipSeverityPenalty = 1.0;
         
-        // Puly trước ít nhạy cảm hơn (cho phép biên độ dao động thoải mái từ 13.5° - 16° ít bị sụt cấu hình)
         const frontSensitivityPenalty = Math.max(0, Math.abs(mismatchFront) - 1.5) * 0.05;
 
-        // Puly sau cực đoan: Nếu góc puly sau giảm xuống dưới 16° (mismatchRear > 0) kết hợp bi nồi nhẹ (< 14g)
         if (mismatchRear > 0) {
-            // Bi nồi càng nhẹ so với mốc tiêu chuẩn (14g) thì lực kéo văng và độ siết trượt càng khốc liệt
-            const weightFactor = Math.max(0, (14.0 - sliderWeight) / 14.0); // Bi càng nhẹ, hệ số càng lớn
-            
-            // Biên độ trượt hình chữ U tập trung mạnh ở vùng chuyển số trung gian (30% - 70% tốc độ)
-            const uShapeFactor = Math.sin((pct / 100) * Math.PI); 
-            
-            // Công thức nhân hệ số cực đoan cho puly sau và trọng lượng bi
+            const weightFactor = Math.max(0, (14.0 - sliderWeight) / 14.0);
+            const uShapeFactor = Math.sin((pct / 100) * Math.PI);
             const extremeRearPenalty = (mismatchRear * 0.25) * (1.0 + weightFactor * 1.5) * uShapeFactor;
-            
             slipSeverityPenalty -= extremeRearPenalty;
         }
 
-        // Trừ thêm một ít nếu puly trước lệch quá xa vùng an toàn
         slipSeverityPenalty -= frontSensitivityPenalty * Math.sin((pct / 100) * Math.PI);
-        
-        // Giới hạn sàn hiệu suất trượt tối thiểu để đồ thị không bị thủng đáy hoàn toàn về 0
         slipSeverityPenalty = Math.max(0.20, slipSeverityPenalty);
         let clampingPenalty = 1.0;
         if (potForceRatio < 0.65) {
@@ -554,16 +541,10 @@
         let wheelHPAtV = engineHPAtV * effAtV * clampingPenalty * slipSeverityPenalty;
 
         if (pct > maxReachableSpeedPercentAtSliderRPM) {
-    // Độ chênh lệch phần trăm tốc độ vượt qua giới hạn
-    const excessPct = pct - maxReachableSpeedPercentAtSliderRPM;
-    
-    // Tạo độ dốc lài lài (giảm tuyến tính mềm hoặc theo hàm mũ thay vì rớt gãy khúc)
-    // Tăng mẫu số (ví dụ từ 25.0 hoặc 30.0) nếu muốn đường dốc thoải hơn nữa
-    const smoothDrop = Math.max(0, 1 - (excessPct / 25.0)); 
-    
-    // Nhân vào công suất để đường biểu diễn uốn cong và lài lài xuống sát đáy
-    wheelHPAtV = wheelHPAtV * Math.pow(smoothDrop, 1.5);
-}
+            const excessPct = pct - maxReachableSpeedPercentAtSliderRPM;
+            const smoothDrop = Math.max(0, 1 - (excessPct / 25.0));
+            wheelHPAtV = wheelHPAtV * Math.pow(smoothDrop, 1.5);
+        }
         
         speedPoints.push({ x: pct, wheelHP: wheelHPAtV });
     }
@@ -607,7 +588,7 @@
             // Header HUD text
             const currentSpeedIdx = Math.min(Math.max(Math.round(currSpeedPercent), 0), 100);
             const livePotentialHP = speedPoints[currentSpeedIdx] ? speedPoints[currentSpeedIdx].wheelHP : 0;
-            hpPotentialLive.innerText = `Tiềm năng @ ${sliderRPM} RPM: ${livePotentialHP.toFixed(1)}% HP (Giới hạn ${maxReachableSpeedPercentAtSliderRPM.toFixed(0)}% Tốc độ)`;
+            hpPotentialLive.innerText = `Potential @ ${sliderRPM} RPM: ${livePotentialHP.toFixed(1)}% HP (Limit: ${maxReachableSpeedPercentAtSliderRPM.toFixed(0)}% Speed)`;
 
             const setupCanvasGrid = (cCtx, cCanvas) => {
                 cCtx.fillStyle = '#090d16';
@@ -775,61 +756,61 @@
             const opt = p.optTuning;
 
             debugConsole.innerHTML = `
-<div class="border-b border-emerald-950 pb-2 mb-2 font-bold text-slate-300">== THAM SỐ ĐẦU VÀO VÀ ĐỘNG LỰC HỌC ==</div>
-<div>[1] Vận tốc góc cốt máy (&omega;):</div>
+<div class="border-b border-emerald-950 pb-2 mb-2 font-bold text-slate-300">== INPUT PARAMETERS & KINEMATICS ==</div>
+<div>[1] Crankshaft Angular Velocity (&omega;):</div>
 <div class="pl-4 text-emerald-400/80">&omega; = (2 * &pi; * RPM) / 60</div>
 <div class="pl-4 text-slate-300">&omega; = (2 * 3.1416 * ${p.rpm}) / 60 = <span class="text-rose-400 font-semibold">${p.omega.toFixed(2)} rad/s</span></div>
 
-<div class="mt-2">[2] Bán kính chạy bi động lực học (r_bi):</div>
+<div class="mt-2">[2] Dynamic Roller Operating Radius (r_bi):</div>
 <div class="pl-4 text-emerald-400/80">r_bi = 30mm + 30mm * Shift_Factor</div>
 <div class="pl-4 text-slate-300">r_bi = 30mm + 30mm * ${(p.shiftFactor * 100).toFixed(1)}% = <span class="text-rose-400 font-semibold">${(p.r_bi * 1000).toFixed(1)} mm</span></div>
 
-<div class="mt-2">[3] Lực ly tâm tổng của 6 viên bi (F_c):</div>
+<div class="mt-2">[3] Total Centrifugal Force of 6 Rollers (F_c):</div>
 <div class="pl-4 text-emerald-400/80">Fc = M_total * &omega;² * r_bi</div>
 <div class="pl-4 text-slate-300">Fc = (6 * ${p.weight}g) * ${p.omega.toFixed(1)}² * ${p.r_bi.toFixed(3)}m = <span class="text-rose-400 font-semibold">${p.F_c.toFixed(1)} N</span></div>
 
-<div class="mt-2">[4] Lực ép hướng trục trước (F_front_axial):</div>
+<div class="mt-2">[4] Front Axial Clamping Force (F_front_axial):</div>
 <div class="pl-4 text-emerald-400/80">F_front_axial = (Fc * tan(20°)) / tan(&theta;_front)</div>
 <div class="pl-4 text-slate-300">F_front_axial = (${Math.round(p.F_c)} * 0.364) / tan(${p.frontAngleDeg.toFixed(1)}°) = <span class="text-rose-400 font-semibold">${p.F_front_axial.toFixed(1)} N</span></div>
 
-<div class="mt-2 border-t border-amber-900/60 pt-2 font-bold text-amber-400">== GỢI Ý CẤU HÌNH TỐI ƯU (SWEET SPOT TUNING @ ${p.peakRpm} RPM) ==</div>
-<div class="text-slate-300 mb-1">Mục tiêu: Ghim tua máy sang số trùng khớp với Tua Đỉnh (${p.peakRpm} RPM) để đạt công suất lớn nhất:</div>
+<div class="mt-2 border-t border-amber-900/60 pt-2 font-bold text-amber-400">== SWEET SPOT TUNING RECOMMENDATION (@ ${p.peakRpm} RPM) ==</div>
+<div class="text-slate-300 mb-1">Target: Lock shift RPM matching Engine Peak RPM (${p.peakRpm} RPM) for maximum wheel power:</div>
 
 <div class="pl-2 border-l-2 border-amber-500/50 space-y-1">
-<div>💡 <span class="text-amber-300 font-bold">Khối lượng Bi Nồi đề xuất:</span> <span class="text-amber-400 font-extrabold text-sm">${opt.optWeight.toFixed(1)} g</span></div>
-<div class="pl-4 text-[11px] text-slate-400">(Dựa trên Lò xo ${p.springKg}kg & Góc puly trước ${p.frontAngleDeg.toFixed(1)}° hiện tại)</div>
+<div>💡 <span class="text-amber-300 font-bold">Recommended Roller Weight:</span> <span class="text-amber-400 font-extrabold text-sm">${opt.optWeight.toFixed(1)} g</span></div>
+<div class="pl-4 text-[11px] text-slate-400">(Based on current ${p.springKg}kg Spring & ${p.frontAngleDeg.toFixed(1)}° Front Pulley Angle)</div>
 
-<div>💡 <span class="text-amber-300 font-bold">Lực Lò Xo Trụ đề xuất:</span> <span class="text-amber-400 font-extrabold text-sm">${opt.optSpring.toFixed(1)} kg</span></div>
-<div class="pl-4 text-[11px] text-slate-400">(Dựa trên Bi ${p.weight.toFixed(1)}g & Góc puly trước ${p.frontAngleDeg.toFixed(1)}° hiện tại)</div>
+<div>💡 <span class="text-amber-300 font-bold">Recommended Main Spring Force:</span> <span class="text-amber-400 font-extrabold text-sm">${opt.optSpring.toFixed(1)} kg</span></div>
+<div class="pl-4 text-[11px] text-slate-400">(Based on current ${p.weight.toFixed(1)}g Rollers & ${p.frontAngleDeg.toFixed(1)}° Front Pulley Angle)</div>
 
-<div>💡 <span class="text-amber-300 font-bold">Góc Nghiêng Puly Trước đề xuất:</span> <span class="text-amber-400 font-extrabold text-sm">${opt.optFrontAngle.toFixed(1)}°</span></div>
-<div class="pl-4 text-[11px] text-slate-400">(Dựa trên Bi ${p.weight.toFixed(1)}g & Lò xo ${p.springKg}kg hiện tại)</div>
+<div>💡 <span class="text-amber-300 font-bold">Recommended Front Pulley Angle:</span> <span class="text-amber-400 font-extrabold text-sm">${opt.optFrontAngle.toFixed(1)}°</span></div>
+<div class="pl-4 text-[11px] text-slate-400">(Based on current ${p.weight.toFixed(1)}g Rollers & ${p.springKg}kg Spring)</div>
 </div>
 
-<div class="mt-2 border-t border-emerald-950 pt-2 font-bold text-rose-400">== CẤU HÌNH & GIỚI HẠN ĐỒ THỊ TIỀM NĂNG TẠI ${p.rpm} RPM (CHART 1) ==</div>
-<div>[5] Vận tốc giới hạn tối đa ở tua máy ${p.rpm} RPM (Trục X Chart 1):</div>
-<div class="pl-4 text-rose-300/80">V_max_at_RPM = [ (RPM_hiện_tại / (0.82 * Final_Reduction)) * D_wheel * &pi; * 60 ] / 1000</div>
+<div class="mt-2 border-t border-emerald-950 pt-2 font-bold text-rose-400">== POTENTIAL POWER LIMITS AT ${p.rpm} RPM (CHART 1) ==</div>
+<div>[5] Top Speed Limit at ${p.rpm} RPM (X-Axis Chart 1):</div>
+<div class="pl-4 text-rose-300/80">V_max_at_RPM = [ (Current_RPM / (0.82 * Final_Reduction)) * D_wheel * &pi; * 60 ] / 1000</div>
 <div class="pl-4 text-slate-300">V_max = [ (${p.rpm} / (0.82 * ${p.finalReduction})) * 0.58 * 3.1416 * 60 ] / 1000 = <span class="text-rose-400 font-bold">${maxReachableKmhAtSliderRPM.toFixed(1)} km/h</span></div>
 <div class="pl-4 text-rose-300/80">X_Cutoff_Percent = (${p.rpm} / 10000) * 100%</div>
-<div class="pl-4 text-slate-300">X_Cutoff = (${p.rpm} / 10000) * 100 = <span class="text-rose-400 font-bold">${maxReachableSpeedPercentAtSliderRPM.toFixed(1)}% Tốc độ tối đa</span></div>
+<div class="pl-4 text-slate-300">X_Cutoff = (${p.rpm} / 10000) * 100 = <span class="text-rose-400 font-bold">${maxReachableSpeedPercentAtSliderRPM.toFixed(1)}% Max Speed</span></div>
 
-<div class="mt-2 border-t border-emerald-950 pt-2 font-bold text-amber-400">== CÔNG THỨC VÀ TỌA ĐỘ ĐIỂM CHẤM THỰC TẾ (LIVE TRAJECTORY POINT) ==</div>
-<div>[6] Tốc độ bánh sau & % Tốc độ tối đa (Trục X):</div>
+<div class="mt-2 border-t border-emerald-950 pt-2 font-bold text-amber-400">== LIVE OPERATING POINT EQUATIONS (LIVE TRAJECTORY POINT) ==</div>
+<div>[6] Rear Wheel Speed & % of Top Speed (X-Axis):</div>
 <div class="pl-4 text-amber-300/80">V_kmh = [ (RPM / (Ratio * Final_Reduction)) * D_wheel * &pi; * 60 ] / 1000</div>
 <div class="pl-4 text-slate-300">V_kmh = [ (${p.rpm} / (${p.cvtTransmissionRatio.toFixed(2)} * ${p.finalReduction})) * 0.58 * 3.1416 * 60 ] / 1000 = <span class="text-amber-400 font-bold">${p.vehicleSpeedKmh.toFixed(1)} km/h</span></div>
 <div class="pl-4 text-amber-300/80">X_Percent = (V_kmh / V_max_10k_rpm) * 100%</div>
-<div class="pl-4 text-slate-300">X = (${p.vehicleSpeedKmh.toFixed(1)} / ${p.maxSpeedKmh.toFixed(1)}) * 100 = <span class="text-cyan-400 font-bold">${p.speedPercent.toFixed(1)}% Tốc độ</span></div>
+<div class="pl-4 text-slate-300">X = (${p.vehicleSpeedKmh.toFixed(1)} / ${p.maxSpeedKmh.toFixed(1)}) * 100 = <span class="text-cyan-400 font-bold">${p.speedPercent.toFixed(1)}% Speed</span></div>
 
-<div class="mt-2">[7] Công suất bám bánh sau thực tế (Trục Y):</div>
+<div class="mt-2">[7] Actual Wheel Power Delivered (Y-Axis):</div>
 <div class="pl-4 text-amber-300/80">HP_engine = 100 * exp( -0.5 * [ (RPM - Peak_RPM) / 2200 ]² )</div>
-<div class="pl-4 text-slate-300">HP_engine = 100 * exp( -0.5 * [ (${p.rpm} - ${p.peakRpm}) / 2200 ]² ) = <span class="text-slate-200 font-semibold">${p.liveEngineHP.toFixed(1)}% HP máy</span></div>
-<div class="pl-4 text-amber-300/80">Y_Percent = HP_engine * Hiệu_suất_truyền_động (&eta;)</div>
+<div class="pl-4 text-slate-300">HP_engine = 100 * exp( -0.5 * [ (${p.rpm} - ${p.peakRpm}) / 2200 ]² ) = <span class="text-slate-200 font-semibold">${p.liveEngineHP.toFixed(1)}% Engine HP</span></div>
+<div class="pl-4 text-amber-300/80">Y_Percent = HP_engine * Transmission_Efficiency (&eta;)</div>
 <div class="pl-4 text-slate-300">Y = ${p.liveEngineHP.toFixed(1)}% * ${(p.efficiency * 100).toFixed(1)}% = <span class="text-cyan-400 font-bold">${p.liveWheelHP.toFixed(1)}% Wheel HP</span></div>
 
-<div class="mt-2 border-t border-emerald-950 pt-2 font-bold text-slate-300">== THÔNG SỐ CẤU HÌNH THỜI GIAN THỰC ==</div>
-<div class="pl-4 text-slate-300">Tỷ số truyền CVT (cvtRatio): <span class="text-emerald-400 font-semibold">${p.cvtTransmissionRatio.toFixed(2)} (2.64 -> 0.82)</span></div>
-<div class="pl-4 text-slate-300">Hành trình mở nồi (Shift Factor): <span class="text-rose-400 font-bold">${(p.shiftFactor * 100).toFixed(1)}%</span></div>
-<div class="pl-4 text-slate-300">Bán kính puly trước: <span class="text-emerald-400 font-semibold">${p.R_front_active.toFixed(1)} mm</span> | Sau: <span class="text-emerald-400 font-semibold">${p.R_rear_active.toFixed(1)} mm</span></div>
+<div class="mt-2 border-t border-emerald-950 pt-2 font-bold text-slate-300">== REAL-TIME TRANSMISSION TELEMETRY ==</div>
+<div class="pl-4 text-slate-300">CVT Ratio (cvtRatio): <span class="text-emerald-400 font-semibold">${p.cvtTransmissionRatio.toFixed(2)} (2.64 -> 0.82)</span></div>
+<div class="pl-4 text-slate-300">Shift Travel (Shift Factor): <span class="text-rose-400 font-bold">${(p.shiftFactor * 100).toFixed(1)}%</span></div>
+<div class="pl-4 text-slate-300">Front Pulley Radius: <span class="text-emerald-400 font-semibold">${p.R_front_active.toFixed(1)} mm</span> | Rear: <span class="text-emerald-400 font-semibold">${p.R_rear_active.toFixed(1)} mm</span></div>
             `;
         }
 
